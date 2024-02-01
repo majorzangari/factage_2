@@ -1,6 +1,6 @@
 use std::env;
 
-mod space;
+mod program;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -8,6 +8,4 @@ fn main() {
     if args.len() < 2 {
         panic!("Please specify a file name\nExampe: cargo run program.txt");
     }
-
-    
 }
