@@ -1,8 +1,6 @@
 use std::env;
 
-pub struct Program {
-
-}
+mod space;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
