@@ -7,6 +7,45 @@ pub struct Program {
 }
 
 impl Program {
+    pub fn new(file_contents: String) {
+        let mut grid = Vec::new();
+        for line in file_contents.lines() {
+            let mut curr_line_spaces = Vec::new();
+            for c in line.chars() {
+                let next_space = match c {
+                    '0'..='9' => {
+                        let int_value = c.to_digit(10).unwrap() as i32;
+                        Space::new_value(ValueType::Integer(int_value))
+                    },
+                    'a'..='z' | 'A'..='Z' => Space::new_value(ValueType::Character(c)),
+                    '\"' => Space::new_value(ValueType::Character(' ')),
+                    '\\' => Space::new_value(ValueType::Character('\n')),
+                    ';' => Space::new_value(ValueType::HaltProgram),
+                    
+                };
+                curr_line_spaces.push(next_space);
+            }
+            grid.push(curr_line_spaces);
+        }
+
+        
+    }
+
+    fn find_longest_line_and_count_lines(file_contents: &str) -> (usize, usize) {
+        let mut max_length = 0;
+        let mut num_lines = 0;
+    
+        for line in file_contents.lines() {
+            num_lines += 1;
+            let line_length = line.len();
+            if line_length > max_length {
+                max_length = line_length;
+            }
+        }
+        
+        (max_length, num_lines)
+    }
+
     fn update_board(&mut self) {
         let mut updated: HashSet<(usize, usize)> = HashSet::new();
         for y in 0..self.grid.len() {
@@ -20,8 +59,18 @@ impl Program {
 
 
     fn update_space(&mut self, y: usize, x: usize, updated: &mut HashSet<(usize, usize)>) {
+        if updated.contains(&(y, x)) {
+            return;
+        }
+
         match self.grid[y][x].space_type {
-            SpaceType::Conveyor(conveyor_type) => {
+            SpaceType::Conveyor(conveyor_type) => { 
+                if self.grid[y][x].in_operable_range.0 {
+                    self.update_space(y, x, updated);
+                }
+                if self.grid[y][x].in_operable_range.1 {
+                    self.update_space(y, x, updated);
+                }
                 let next_space = match conveyor_type {
                     ConveyorType::Up => (y - 1, x),
                     ConveyorType::Down => (y + 1, x),
@@ -32,10 +81,11 @@ impl Program {
                     ConveyorType::DoubleLeft => (y, x - 2),
                     ConveyorType::DoubleRight => (y, x + 2),
                 };
-                self.push_value(self.grid[y][x].value, next_space);
-                //TODO: confirm push, remove values
+                 if self.push_value(self.grid[y][x].value, next_space, updated) {
+                    self.grid[y][x].value = ValueType::None;
+                 }
             }
-            SpaceType::LogicalConveyor => {
+            SpaceType::LogicalConveyor => { // Cannot hold value
                 if y == 0 || y == (self.height - 1) as usize {
                     return;
                 }
@@ -47,10 +97,11 @@ impl Program {
                 };
 
                 let destination = if shift_left {(y, x - 1)} else {(y, x + 1)};
-                self.push_value(self.grid[y][x].value, destination);
-                //TODO: confirm push, remove values
+                if self.push_value(self.grid[y - 1][x].value, destination, updated) {
+                    self.grid[y - 1][x].value = ValueType::None;
+                }
             }
-            SpaceType::Operator(operator_type) => {
+            SpaceType::Operator(operator_type) => { // Cannot hold value
                 if x == 0 || x == (self.width - 1) as usize {
                     return;
                 }
@@ -82,10 +133,12 @@ impl Program {
                     OperatorType::GreaterThan => if left_value > right_value {1} else {0},
                 };
 
-                self.push_value(ValueType::Integer(result), (y + 1, x));
-                //TODO: confirm push, remove values
+                 if self.push_value(ValueType::Integer(result), (y + 1, x), updated) {
+                    self.grid[y][x - 1].value = ValueType::None;
+                    self.grid[y][x + 1].value = ValueType::None;
+                 }
             }
-            SpaceType::Processor(processor_type) => {
+            SpaceType::Processor(processor_type) => { // Cannot hold value
                 match processor_type {
                     ProcessorType::Delete => self.grid[y][x].value = ValueType::None,
                     ProcessorType::Print => {
@@ -93,17 +146,42 @@ impl Program {
                             ValueType::Integer(i) => print!("{i}"),
                             ValueType::Character(c) => print!("{c}"),
                             ValueType::HaltProgram => todo!("stop program at this point"),
-                            ValueType::None => {}
+                            _ => {}
                         }
                     }
                 }
             }
-            _ => {}
+            SpaceType::Wall => {},
         }
     }
 
-    fn push_value(&mut self, value: ValueType, destination: (usize, usize)) -> bool {
-        todo!("moving value code");
+    fn push_value(&mut self, new_value: ValueType, destination: (usize, usize), updated: &mut HashSet<(usize, usize)>) -> bool {
+        let (y, x) = destination;
+        if y >= (self.height - 1) as usize {
+            return true;
+        }
+        if x >= (self.width - 1) as usize {
+            return true;
+        }
+
+        match self.grid[y][x].value {
+            ValueType::None => {
+                self.grid[y][x].value = new_value;
+                updated.insert(destination);
+                return true;
+            }
+            ValueType::Character(_) | ValueType::Integer(_) | ValueType::HaltProgram => {
+                if !updated.contains(&destination) {
+                    self.update_space(y, x, updated);
+                    return self.push_value(new_value, destination, updated);
+                }
+            }
+            ValueType::CannotHoldValue => {
+                return false;
+            }
+        }
+
+        false
     }
 }
 
@@ -111,10 +189,33 @@ impl Program {
 pub struct Space {
     pub value: ValueType,
     pub space_type: SpaceType,
+    pub in_operable_range: (bool, bool),
+}
+
+impl Space {
+    fn new_value(value: ValueType) -> Self {
+        Self {
+            value,
+            space_type: SpaceType::Conveyor(ConveyorType::Down),
+            in_operable_range: (false, false),
+        }
+    }
+
+    fn new_space(space_type: SpaceType) -> Self {
+        Self {
+            value: match space_type {
+                SpaceType::Conveyor(_) | SpaceType::Processor(_) => ValueType::None,
+                _ => ValueType::CannotHoldValue,
+            },
+            space_type,
+            in_operable_range: (false, false,),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
 pub enum ValueType {
+    CannotHoldValue,
     None,
     HaltProgram,
     Integer(i32),
@@ -123,7 +224,6 @@ pub enum ValueType {
 
 #[derive(Clone, Copy)]
 pub enum SpaceType {
-    Empty,
     Wall,
     Conveyor(ConveyorType),
     LogicalConveyor,
