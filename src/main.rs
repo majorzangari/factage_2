@@ -10,21 +10,16 @@ fn main() {
     if args.len() < 2 {
         panic!("Please specify a file name\nExampe: cargo run program.txt");
     }
-    let now = Instant::now();
 
+    let file_contents = match std::fs::read_to_string(&args[1]) {
+        Ok(v) => v,
+        Err(e) => panic!("Could not open file: {:?}", e),
+    };
 
-    for _ in 0..100 {
-        let file_contents = match std::fs::read_to_string(&args[1]) {
-            Ok(v) => v,
-            Err(e) => panic!("Could not open file: {:?}", e),
-        };
+    let (width, height) = find_longest_line_and_count_lines(&file_contents);
 
-        let (width, height) = find_longest_line_and_count_lines(&file_contents);
-        let mut program = Program::new(file_contents, width, height);
-        program.run();
-    }
-    let elapsed = now.elapsed();
-    println!("Elapsed: {:.2?}", elapsed);
+    let mut program = Program::new(file_contents.clone(), width, height);
+    program.run();
 }
 
 fn find_longest_line_and_count_lines(file_contents: &str) -> (i32, i32) {

@@ -5,7 +5,6 @@ pub struct Program {
     pub width: i32,
     pub height: i32,
     pub running: bool,
-    prev: Option<Vec<Vec<Space>>>,
 }
 
 impl Program {
@@ -65,7 +64,6 @@ impl Program {
             width,
             height,
             running: true,
-            prev: None,
         }
     }
 
@@ -73,12 +71,24 @@ impl Program {
         while self.running {
             self.update_board();
         }
-        println!("\nProgram has halted");
     }
 
     fn update_board(&mut self) {
-        self.prev = Some(self.grid.clone());
         let mut updated: HashSet<(usize, usize)> = HashSet::new();
+        for y in 0..self.grid.len() {
+            for x in 0..self.grid[y].len() {
+                match self.grid[y][x].space_type {
+                    SpaceType::LogicalConveyor => {
+                        if !updated.contains(&(y, x)) {
+                            self.update_space(y, x, &mut updated);
+                            updated.insert((y, x));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
         for y in 0..self.grid.len() {
             for x in 0..self.grid[y].len() {
                 match self.grid[y][x].space_type {
@@ -142,15 +152,21 @@ impl Program {
         if y == 0 || y == (self.height - 1) as usize {
             return;
         }
-        let shift_left = match self.prev {
-            Some(ref prev) => {
-                match prev[y + 1][x].value {
-                    ValueType::Integer(i) => i != 0,
-                    ValueType::None => return,
-                    _ => true,
-                }
-            }
-            None => return,
+        // let shift_left = match self.prev {
+        //     Some(ref prev) => {
+        //         match prev[y + 1][x].value {
+        //             ValueType::Integer(i) => i != 0,
+        //             ValueType::None => return,
+        //             _ => true,
+        //         }
+        //     }
+        //     None => return,
+        // };
+
+        let shift_left = match self.grid[y + 1][x].value {
+            ValueType::Integer(i) => i != 0,
+            ValueType::None => return,
+            _ => true,
         };
 
         let destination = if shift_left {(y as i32, (x as i32) - 1)} else {(y as i32, (x as i32) + 1)};
@@ -167,15 +183,10 @@ impl Program {
                     return;
                 }
 
-                let left_value = match self.prev {
-                    Some(ref prev) => {
-                        match prev[y][x - 1].value {
-                            ValueType::Integer(i) => i,
-                            ValueType::Character(c) => c as i32,
-                            _ => return,
-                        }
-                    }
-                    None => return,
+                let left_value = match self.grid[y][x - 1].value {
+                    ValueType::Integer(i) => i,
+                    ValueType::Character(c) => c as i32,
+                    _ => return,
                 };
 
                 let left_space_temp = self.grid[y][x - 1].value;
