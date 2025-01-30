@@ -41,8 +41,6 @@ Example:
 |   |      |   |      |   |                             |   |      | r |
 ```
 
-Processors can 
-Processors can be 
 ## Symbols
 ### Values
 - `0-9` are integer values.
