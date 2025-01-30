@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashSet;
 
 pub struct Program {
@@ -19,7 +21,7 @@ impl Program {
                     '0'..='9' => {
                         let int_value = c.to_digit(10).unwrap() as i32;
                         Space::new_value(ValueType::Integer(int_value))
-                    },
+                    }
                     'a'..='z' | 'A'..='Z' => Space::new_value(ValueType::Character(c)),
                     '\"' => Space::new_value(ValueType::Character(' ')),
                     '\\' => Space::new_value(ValueType::Character('\n')),
@@ -33,7 +35,7 @@ impl Program {
                     '|' => Space::new_space(SpaceType::Operator(OperatorType::Or)),
                     '=' => Space::new_space(SpaceType::Operator(OperatorType::Equals)),
                     '<' => Space::new_space(SpaceType::Operator(OperatorType::LessThan)),
-                    '>' => Space::new_space(SpaceType::Operator(OperatorType::GreaterThan)),    
+                    '>' => Space::new_space(SpaceType::Operator(OperatorType::GreaterThan)),
                     '!' => Space::new_space(SpaceType::Operator(OperatorType::Invert)),
                     ':' => Space::new_space(SpaceType::Operator(OperatorType::Duplicate)),
                     ' ' => Space::new_space(SpaceType::Conveyor(ConveyorType::Down)),
@@ -118,16 +120,25 @@ impl Program {
         }
 
         match self.grid[y][x].space_type {
-            SpaceType::Conveyor(conveyor_type) => self.update_conveyor(y, x, updated, conveyor_type),
+            SpaceType::Conveyor(conveyor_type) => {
+                self.update_conveyor(y, x, updated, conveyor_type)
+            }
             SpaceType::LogicalConveyor => self.update_logical_conveyor(y, x, updated),
-            SpaceType::Operator(operator_type) => self.update_operator(y, x, updated, operator_type),
+            SpaceType::Operator(operator_type) => {
+                self.update_operator(y, x, updated, operator_type)
+            }
             SpaceType::Processor(processor_type) => self.update_processor(y, x, processor_type),
-            SpaceType::Wall => {},
+            SpaceType::Wall => {}
         }
     }
 
-    fn update_conveyor(&mut self, y: usize, x: usize, updated: &mut HashSet<(usize, usize)>, conveyor_type: ConveyorType) {
-
+    fn update_conveyor(
+        &mut self,
+        y: usize,
+        x: usize,
+        updated: &mut HashSet<(usize, usize)>,
+        conveyor_type: ConveyorType,
+    ) {
         let next_space: (i32, i32) = match conveyor_type {
             ConveyorType::Up => (y as i32 - 1, x as i32),
             ConveyorType::Down => (y as i32 + 1, x as i32),
@@ -139,7 +150,7 @@ impl Program {
             ConveyorType::DoubleRight => (y as i32, x as i32 + 2),
         };
         match self.grid[y][x].value {
-            ValueType::Integer(_) | ValueType::Character(_)  | ValueType::HaltProgram => {
+            ValueType::Integer(_) | ValueType::Character(_) | ValueType::HaltProgram => {
                 if self.push_value(self.grid[y][x].value, next_space, updated) {
                     self.grid[y][x].value = ValueType::None;
                 }
@@ -148,7 +159,12 @@ impl Program {
         }
     }
 
-    fn update_logical_conveyor(&mut self, y: usize, x: usize, updated: &mut HashSet<(usize, usize)>) {
+    fn update_logical_conveyor(
+        &mut self,
+        y: usize,
+        x: usize,
+        updated: &mut HashSet<(usize, usize)>,
+    ) {
         if y == 0 || y == (self.height - 1) as usize {
             return;
         }
@@ -169,14 +185,24 @@ impl Program {
             _ => true,
         };
 
-        let destination = if shift_left {(y as i32, (x as i32) - 1)} else {(y as i32, (x as i32) + 1)};
-        
+        let destination = if shift_left {
+            (y as i32, (x as i32) - 1)
+        } else {
+            (y as i32, (x as i32) + 1)
+        };
+
         if self.push_value(self.grid[y - 1][x].value, destination, updated) {
             self.grid[y - 1][x].value = ValueType::None;
         }
     }
 
-    fn update_operator(&mut self, y: usize, x: usize, updated: &mut HashSet<(usize, usize)>, operator_type: OperatorType) {
+    fn update_operator(
+        &mut self,
+        y: usize,
+        x: usize,
+        updated: &mut HashSet<(usize, usize)>,
+        operator_type: OperatorType,
+    ) {
         match operator_type {
             OperatorType::Invert | OperatorType::Duplicate => {
                 if x == 0 {
@@ -243,39 +269,64 @@ impl Program {
                     OperatorType::Modulus => left_value % right_value,
                     OperatorType::And => left_value & right_value,
                     OperatorType::Or => left_value | right_value,
-                    OperatorType::Equals => if left_value == right_value {1} else {0},
-                    OperatorType::LessThan => if left_value < right_value {1} else {0},
-                    OperatorType::GreaterThan => if left_value > right_value {1} else {0},
+                    OperatorType::Equals => {
+                        if left_value == right_value {
+                            1
+                        } else {
+                            0
+                        }
+                    }
+                    OperatorType::LessThan => {
+                        if left_value < right_value {
+                            1
+                        } else {
+                            0
+                        }
+                    }
+                    OperatorType::GreaterThan => {
+                        if left_value > right_value {
+                            1
+                        } else {
+                            0
+                        }
+                    }
                     _ => unreachable!("Invert and Duplicate should have been handled earlier"),
                 };
 
-                 if self.push_value(ValueType::Integer(result), ((y + 1) as i32, x as i32), updated) {
+                if self.push_value(
+                    ValueType::Integer(result),
+                    ((y + 1) as i32, x as i32),
+                    updated,
+                ) {
                     self.grid[y][x - 1].value = ValueType::None;
                     self.grid[y][x + 1].value = ValueType::None;
-                 } else {
+                } else {
                     self.grid[y][x - 1].value = left_space_temp;
                     self.grid[y][x + 1].value = right_space_temp;
-                 }
+                }
             }
         }
     }
 
     fn update_processor(&mut self, y: usize, x: usize, processor_type: ProcessorType) {
         match processor_type {
-            ProcessorType::Print => {
-                match self.grid[y][x].value {
-                    ValueType::Integer(i) => print!("{i}"),
-                    ValueType::Character(c) => print!("{c}"),
-                    ValueType::HaltProgram => self.running = false,
-                    _ => {}
-                }
-            }
+            ProcessorType::Print => match self.grid[y][x].value {
+                ValueType::Integer(i) => print!("{i}"),
+                ValueType::Character(c) => print!("{c}"),
+                ValueType::HaltProgram => self.running = false,
+                _ => {}
+            },
             ProcessorType::Delete => {}
         }
         self.grid[y][x].value = ValueType::None
     }
 
-    fn push_value(&mut self, new_value: ValueType, destination: (i32, i32), updated: &mut HashSet<(usize, usize)>) -> bool {
+    fn push_value(
+        &mut self,
+        new_value: ValueType,
+        destination: (i32, i32),
+        updated: &mut HashSet<(usize, usize)>,
+    ) -> bool {
         let (dest_y, dest_x) = destination;
         if dest_y < 0 || dest_y >= self.height {
             return true;
@@ -324,55 +375,47 @@ impl Program {
                         } else {
                             print!("n");
                         }
-                    },
+                    }
                     ValueType::Character(c) => {
                         if c == '\n' {
                             print!("\\");
                         } else {
                             print!("{c}");
                         }
-                    },
-                    ValueType::HaltProgram => print!(";"),
-                    _ => {
-                        match self.grid[y][x].space_type {
-                            SpaceType::Conveyor(conveyor_type) => {
-                                match conveyor_type {
-                                    ConveyorType::Up => print!("^"),
-                                    ConveyorType::Down => print!(" "),
-                                    ConveyorType::Left => print!("<"),
-                                    ConveyorType::Right => print!(">"),
-                                    ConveyorType::DoubleUp => print!("\""),
-                                    ConveyorType::DoubleDown => print!("\'"),
-                                    ConveyorType::DoubleLeft => print!("["),
-                                    ConveyorType::DoubleRight => print!("]"),
-                                }
-                            }
-                            SpaceType::LogicalConveyor => print!("?"),
-                            SpaceType::Operator(operator_type) => {
-                                match operator_type {
-                                    OperatorType::Addition => print!("+"),
-                                    OperatorType::Subtraction => print!("-"),
-                                    OperatorType::Multiplication => print!("*"),
-                                    OperatorType::Division => print!("/"),
-                                    OperatorType::Modulus => print!("%"),
-                                    OperatorType::And => print!("&"),
-                                    OperatorType::Or => print!("|"),
-                                    OperatorType::Equals => print!("="),
-                                    OperatorType::LessThan => print!("<"),
-                                    OperatorType::GreaterThan => print!(">"),
-                                    OperatorType::Invert => print!("!"),
-                                    OperatorType::Duplicate => print!(":"),
-                                }
-                            }
-                            SpaceType::Processor(processor_type) => {
-                                match processor_type {
-                                    ProcessorType::Print => print!("@"),
-                                    ProcessorType::Delete => print!("#"),
-                                }
-                            }
-                            SpaceType::Wall => print!("_"),
-                        }
                     }
+                    ValueType::HaltProgram => print!(";"),
+                    _ => match self.grid[y][x].space_type {
+                        SpaceType::Conveyor(conveyor_type) => match conveyor_type {
+                            ConveyorType::Up => print!("^"),
+                            ConveyorType::Down => print!(" "),
+                            ConveyorType::Left => print!("<"),
+                            ConveyorType::Right => print!(">"),
+                            ConveyorType::DoubleUp => print!("\""),
+                            ConveyorType::DoubleDown => print!("\'"),
+                            ConveyorType::DoubleLeft => print!("["),
+                            ConveyorType::DoubleRight => print!("]"),
+                        },
+                        SpaceType::LogicalConveyor => print!("?"),
+                        SpaceType::Operator(operator_type) => match operator_type {
+                            OperatorType::Addition => print!("+"),
+                            OperatorType::Subtraction => print!("-"),
+                            OperatorType::Multiplication => print!("*"),
+                            OperatorType::Division => print!("/"),
+                            OperatorType::Modulus => print!("%"),
+                            OperatorType::And => print!("&"),
+                            OperatorType::Or => print!("|"),
+                            OperatorType::Equals => print!("="),
+                            OperatorType::LessThan => print!("<"),
+                            OperatorType::GreaterThan => print!(">"),
+                            OperatorType::Invert => print!("!"),
+                            OperatorType::Duplicate => print!(":"),
+                        },
+                        SpaceType::Processor(processor_type) => match processor_type {
+                            ProcessorType::Print => print!("@"),
+                            ProcessorType::Delete => print!("#"),
+                        },
+                        SpaceType::Wall => print!("_"),
+                    },
                 }
             }
             println!();

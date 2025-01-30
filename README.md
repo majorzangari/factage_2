@@ -1,6 +1,6 @@
 # Factage
-WIP
-should prolly add an actual description of what it does cuz rn this is all meaningless
+Factage is an esoteric programming language based on the functionality of factory-games like factorio (or just regular factories).
+Every value
 ## Symbols
 ### Values
 - `0-9` are integer values.
@@ -42,5 +42,5 @@ All unary operators take the value directly to the left and outputs the result d
 ## Interpreter
 To run a program, invoke the interpreter with the source code's file name as a command-line argument, e.g.
 ```
-java Factage program.txt
+cargo run -r program.txt
 ```

@@ -1,5 +1,4 @@
 use std::env;
-use std::time::Instant;
 
 use program::Program;
 
@@ -8,7 +7,8 @@ mod program;
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        panic!("Please specify a file name\nExampe: cargo run program.txt");
+        println!("Please specify a file name\nExampe: cargo run program.txt");
+        return;
     }
 
     let file_contents = match std::fs::read_to_string(&args[1]) {
@@ -33,6 +33,6 @@ fn find_longest_line_and_count_lines(file_contents: &str) -> (i32, i32) {
             max_length = line_length;
         }
     }
-    
+
     (max_length, num_lines)
 }
