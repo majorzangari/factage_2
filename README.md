@@ -1,6 +1,48 @@
 # Factage
 Factage is an esoteric programming language based on the functionality of factory-games like factorio (or just regular factories).
-Every value
+A Factage program consists of values and machines. Values represent characters or integer values, which you move, process, and use with machines.
+After defining your initial state, values will fall down one row every time step if not supported
+Example:
+```
+| r |      |   |      |   |      |   |      |   |
+|   |      | r |      |   |      |   |      |   |
+|   |  ->  |   |  ->  | r |  ->  |   |  ->  |   |
+|   |      |   |      |   |      | r |      |   |
+|   |      |   |      |   |      |   |      | r |
+```
+
+Conveyor belts can be used to move values in a more controlled manner
+Example:
+```
+| r |      |   |      |   |      |   |      |   |
+|   |      | r |      |   |      |   |      |   |
+| > |  ->  | > |  ->  | r |  ->  | >r|  ->  | > |
+|   |      |   |      |   |      |   |      |  r|
+|   |      |   |      |   |      |   |      |   |
+```
+
+Operators can be used to modify values
+Example:
+```
+|1 2|      |   |      |   |      |   |      |   |
+|   |      |1 2|      |   |      |   |      |   |
+| + |  ->  | + |  ->  |1+2|  ->  | + |  ->  | + |
+|   |      |   |      |   |      | 3 |      |   |
+|   |      |   |      |   |      |   |      | 3 |
+```
+
+Processors can be used to perform functions with values
+Example:
+```
+| r |      |   |      |   |                             |   |      |   |
+|   |      | r |      |   |                             |   |      |   |
+| @ |  ->  | @ |  ->  | r |  -> console prints: "r" ->  | @ |  ->  | @ |
+|   |      |   |      |   |                             | r |      |   |
+|   |      |   |      |   |                             |   |      | r |
+```
+
+Processors can 
+Processors can be 
 ## Symbols
 ### Values
 - `0-9` are integer values.
